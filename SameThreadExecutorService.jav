@@ -1,13 +1,11 @@
-import java.util.List;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class SameThreadExecutorService implements ExecutorService {
 
     @Override
     public void execute(Runnable command) {
-        command.run(); // run immediately in same thread
+        command.run();
     }
 
     @Override
@@ -33,34 +31,45 @@ public class SameThreadExecutorService implements ExecutorService {
         return CompletableFuture.completedFuture(result);
     }
 
-    // Minimal stubs for the other ExecutorService methods
-
-    @Override public void shutdown() {}
-    @Override public List<Runnable> shutdownNow() { return Collections.emptyList(); }
-    @Override public boolean isShutdown() { return false; }
-    @Override public boolean isTerminated() { return false; }
-    @Override public boolean awaitTermination(long timeout, TimeUnit unit) { return true; }
-
     @Override
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
-        throw new UnsupportedOperationException("Not needed in tests");
+        List<Future<T>> futures = new ArrayList<>(tasks.size());
+        for (Callable<T> task : tasks) {
+            futures.add(submit(task));
+        }
+        return futures;
     }
 
     @Override
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
             throws InterruptedException {
-        throw new UnsupportedOperationException("Not needed in tests");
+        // Since we're synchronous, timeout doesn't matter
+        return invokeAll(tasks);
     }
 
     @Override
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks)
             throws InterruptedException, ExecutionException {
-        throw new UnsupportedOperationException("Not needed in tests");
+        for (Callable<T> task : tasks) {
+            try {
+                return task.call();
+            } catch (Exception e) {
+                // ignore and try next
+            }
+        }
+        throw new ExecutionException(new NoSuchElementException("No successful task"));
     }
 
     @Override
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
             throws InterruptedException, ExecutionException, TimeoutException {
-        throw new UnsupportedOperationException("Not needed in tests");
+        return invokeAny(tasks);
     }
+
+    // Shutdown methods (no-op for tests)
+    @Override public void shutdown() {}
+    @Override public List<Runnable> shutdownNow() { return Collections.emptyList(); }
+    @Override public boolean isShutdown() { return false; }
+    @Override public boolean isTerminated() { return false; }
+    @Override public boolean awaitTermination(long timeout, TimeUnit unit) { return true; }
 }
